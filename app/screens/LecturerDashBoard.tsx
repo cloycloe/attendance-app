@@ -1,0 +1,176 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  FlatList,
+  Image,
+  Alert
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+
+const handleLogout = (navigation) => {
+  Alert.alert(
+    "Logout",
+    "Are you sure you want to logout?",
+    [
+      {
+        text: "Cancel",
+        style: "cancel"
+      },
+      {
+        text: "Yes",
+        onPress: () => {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
+        }
+      }
+    ]
+  );
+};
+
+const LecturerDashBoard = ({ navigation, route }) => {
+  const [courses, setCourses] = useState([]);
+  const [lecturerName, setLecturerName] = useState('');
+
+  useEffect(() => {
+    // Get lecturer name from login data
+    if (route.params?.user?.name) {
+      setLecturerName(route.params.user.name);
+    }
+    fetchLecturerCourses();
+  }, []);
+
+  const fetchLecturerCourses = async () => {
+    try {
+      // Replace with your actual API endpoint and lecturer ID
+      const response = await axios.get(`http://192.168.5.178:5000/api/courses?lecturerId=${route.params?.user?._id}`);
+      setCourses(response.data);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <View style={styles.profileContainer}>
+          <View style={styles.profileIcon}>
+            <Ionicons name="person-circle" size={40} color="white" />
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.nameText}>
+              {route.params?.user?.name || 'Lecturer Name'}
+            </Text>
+            <Text style={styles.roleText}>Lecturer</Text>
+          </View>
+          <TouchableOpacity onPress={() => handleLogout(navigation)}>
+            <Ionicons name="log-out-outline" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      <View style={styles.content}>
+        <Text style={styles.loadingText}>Fetching data...</Text>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    backgroundColor: '#3498db',
+    paddingVertical: 20,
+    paddingHorizontal: 15,
+  },
+  profileContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  profileIcon: {
+    marginRight: 12,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  nameText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  roleText: {
+    color: 'white',
+    fontSize: 14,
+    opacity: 0.9,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#666',
+  },
+  subjectsContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  subjectList: {
+    paddingBottom: 20,
+  },
+  subjectCard: {
+    backgroundColor: '#4EABE9',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  subjectName: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  subjectCode: {
+    color: 'white',
+    fontSize: 14,
+    marginTop: 5,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 50,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    backgroundColor: '#4EABE9',
+    height: 60,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+
+export default LecturerDashBoard;
