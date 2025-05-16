@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const courseRoutes = require('./routes/courses');
 const attendanceRoutes = require('./routes/attendance');
+const instructorRoutes = require('./routes/instructor');
 
 dotenv.config();
 
@@ -27,17 +28,19 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/attendanc
 
 // Middleware
 app.use(express.json());
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/instructor', instructorRoutes);
+
+// Debug endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working' });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -48,4 +51,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Listen on all network interfaces
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});

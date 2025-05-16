@@ -1,145 +1,147 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  Image, 
-  ActivityIndicator,
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  SafeAreaView,
+  Dimensions,
   Alert
 } from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { API_URL } from '../config/api';
+
+const { height } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!username || !password) {
-      Alert.alert('Error', 'Please enter both username and password');
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    setIsLoading(true);
-    
     try {
-      console.log('Attempting login with:', { username, password });
-      
-      const response = await axios.post(
-        'http://192.168.254.163:5000/api/auth/login', 
-        {
-          username,
-          password
+      console.log('Attempting to connect to:', `${API_URL}/auth/login`);
+      const response = await fetch(`http://192.168.5.178:5000/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          timeout: 10000,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
 
-      console.log('Login response:', response.data);
-
-      if (response.data.token) {
-        try {
-          // Store the token and user data
-          await AsyncStorage.setItem('userToken', response.data.token);
-          await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
-
-          // Navigate based on role with user data
-          if (response.data.user.role === 'Administrator') {
-            navigation.reset({
-              index: 0,
-              routes: [{ 
-                name: 'AdminDashBoard',  // Updated name
-                params: { user: response.data.user }
-              }],
-            });
-          } else if (response.data.user.role === 'Instructor') {
-            navigation.reset({
-              index: 0,
-              routes: [{ 
-                name: 'LecturerDashBoard',
-                params: { user: response.data.user }
-              }],
-            });
-          } else if (response.data.user.role === 'Student') {
-            navigation.reset({
-              index: 0,
-              routes: [{ 
-                name: 'StudentDashBoard',
-                params: { user: response.data.user }
-              }],
-            });
-          }
-        } catch (storageError) {
-          console.error('Storage error:', storageError);
-          Alert.alert('Error', 'Failed to save login data');
-        }
+      if (!response.ok) {
+        throw new Error('Login failed');
       }
+
+      const data = await response.json();
+      console.log('Response:', data);
+
+      if (!data.user || !data.user.user_id) {
+        Alert.alert('Error', 'Invalid user data received');
+        return;
+      }
+
+      const userId = data.user.user_id;
+      console.log('User ID:', userId);
+
+      switch(userId.charAt(0)) {
+        case '3':
+          navigation.replace('StudentDashBoard', { user: data.user });
+          break;
+        case '2':
+          navigation.replace('LecturerDashBoard', { user: data.user });
+          break;
+        case '1':
+          navigation.replace('AdminDashboard', { user: data.user });
+          break;
+        default:
+          Alert.alert('Error', 'Invalid user type');
+      }
+
     } catch (error) {
       console.error('Login error details:', error);
-      
-      if (error.code === 'ECONNABORTED') {
-        Alert.alert('Connection Error', 'Server is not responding. Please check your connection.');
-      } else if (error.response) {
-        Alert.alert('Login Failed', error.response.data.message || 'Invalid credentials');
-      } else if (error.request) {
-        Alert.alert('Connection Error', 'Cannot reach the server. Please check your connection.');
-      } else {
-        Alert.alert('Error', 'An unexpected error occurred');
-      }
-    } finally {
-      setIsLoading(false);
+      Alert.alert(
+        'Connection Error',
+        'Cannot connect to server. Make sure:\n\n1. Backend server is running\n2. Your phone and computer are on the same network',
+        [{ text: 'OK' }]
+      );
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.logoContainer}>
-          <Image 
-            source={require('../../assets/logoreal1.png')} 
+      <SafeAreaView style={styles.topHalf}>
+        <View style={styles.header}>
+          <Image
+            source={require('../../assets/logoalternativenobg.png')}
             style={styles.logo}
           />
-          <Text style={styles.loginTitle}>Login</Text>
+          <Text style={styles.title}>Sign in to your{'\n'}Account</Text>
+          <Text style={styles.subtitle}>Enter your email and password to log in</Text>
         </View>
-        
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Username</Text>
-          <TextInput
-            style={styles.input}
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-          />
-        </View>
-        
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
-        
-        <TouchableOpacity 
-          style={styles.loginButton} 
-          onPress={handleLogin}
-          disabled={isLoading}
+      </SafeAreaView>
+      
+      <View style={styles.bottomHalf}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.formContainer}
         >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.loginButtonText}>Login</Text>
-          )}
-        </TouchableOpacity>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.label}>Email</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder=""
+                placeholderTextColor="#999"
+                value={username}
+                onChangeText={setUsername}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputWrapper}>
+            <Text style={styles.label}>Password</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder=""
+                placeholderTextColor="#999"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={24}
+                  color="#999"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={handleLogin}
+          >
+            <Text style={styles.loginButtonText}>Log In</Text>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </View>
     </View>
   );
@@ -148,70 +150,91 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
+    backgroundColor: '#2567E8',
   },
-  card: {
-    width: '100%',
-    maxWidth: 400,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    backgroundColor: '#fff',
+  topHalf: {
+    height: height * 0.35,
+    backgroundColor: '#2567E8',
+    paddingHorizontal: 20,
   },
-  logoContainer: {
+  bottomHalf: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '70%',
+  },
+  header: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginTop: 20,
   },
   logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 10,
-    borderRadius: 15,
-  },
-  loginTitle: {
-    fontSize: 24,
-    fontWeight: '500',
+    width: 60,
+    height: 60,
     marginBottom: 20,
   },
-  inputContainer: {
-    marginBottom: 15,
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 10,
+    lineHeight: 34,
   },
-  inputLabel: {
+  subtitle: {
     fontSize: 16,
+    color: '#fff',
+    opacity: 0.8,
+    textAlign: 'center',
+  },
+  formContainer: {
+    width: '100%',
+  },
+  inputWrapper: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    color: '#666',
     marginBottom: 8,
-    color: '#333',
+    marginLeft: 4,
+  },
+  inputContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 5,
-    padding: 10,
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     fontSize: 16,
+    color: '#000',
+  },
+  eyeIcon: {
+    padding: 15,
   },
   loginButton: {
-    backgroundColor: '#3498db',
-    borderRadius: 5,
-    padding: 12,
+    backgroundColor: '#2567E8',
+    borderRadius: 12,
+    paddingVertical: 15,
     alignItems: 'center',
     marginTop: 10,
   },
   loginButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  forgotPasswordContainer: {
-    alignItems: 'center',
-    marginTop: 15,
-  },
-  forgotPasswordText: {
-    color: '#3498db',
-    fontSize: 14,
-  }
 });
 
 export default LoginScreen; 

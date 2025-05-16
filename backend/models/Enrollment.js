@@ -1,23 +1,36 @@
 const mongoose = require('mongoose');
 
 const enrollmentSchema = new mongoose.Schema({
-  studentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  user_id: {
+    type: String,
+    required: true,
+    ref: 'User'
+  },
+  username: {
+    type: String,
     required: true
   },
-  courseId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Course',
+  subjectId: {
+    type: String,
+    required: true,
+    ref: 'Subject'
+  },
+  sectionId: {
+    type: String,
+    required: true,
+    ref: 'Section'
+  },
+  academicYear: {
+    type: String,
     required: true
   },
-  enrollmentDate: {
-    type: Date,
-    default: Date.now
+  semester: {
+    type: String,
+    required: true
   }
 });
 
 // Compound index to prevent duplicate enrollments
-enrollmentSchema.index({ studentId: 1, courseId: 1 }, { unique: true });
+enrollmentSchema.index({ user_id: 1, subjectId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Enrollment', enrollmentSchema);

@@ -3,9 +3,23 @@ const bcrypt = require("bcryptjs");
 
 const UserSchema = new mongoose.Schema({
   user_id: {
-    type: Number,
+    type: String,
     required: true,
-    unique: true
+    unique: true,
+    validate: {
+      validator: function(v) {
+        // Check if user_id follows the pattern
+        if (this.role === 'Student') {
+          return v.startsWith('3');
+        } else if (this.role === 'Instructor') {
+          return v.startsWith('2');
+        } else if (this.role === 'Administrator') {
+          return v.startsWith('1');
+        }
+        return false;
+      },
+      message: 'user_id must start with 3 for Students, 2 for Instructors, or 1 for Administrators'
+    }
   },
   username: {
     type: String,
@@ -28,18 +42,31 @@ const UserSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  section: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Section',
-    required: function() {
-      return this.role === "Student";
-    }
-  },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
+
+// Static method to get next available user_id
+UserSchema.statics.getNextUserId = async function(role) {
+  let prefix;
+  if (role === 'Student') prefix = '3';
+  else if (role === 'Instructor') prefix = '2';
+  else if (role === 'Administrator') prefix = '1';
+  
+  const lastUser = await this.findOne({ role })
+    .sort({ user_id: -1 })  // Sort by user_id in descending order
+    .select('user_id');
+    
+  if (!lastUser) {
+    return `${prefix}001`; // First user of this role
+  }
+  
+  const lastNumber = parseInt(lastUser.user_id.slice(1));
+  const nextNumber = lastNumber + 1;
+  return `${prefix}${nextNumber.toString().padStart(3, '0')}`;
+};
 
 // Hash password before saving
 UserSchema.pre("save", async function(next) {
@@ -54,7 +81,7 @@ UserSchema.pre("save", async function(next) {
   }
 });
 
-// Compare password method
+// Method to compare passwords
 UserSchema.methods.comparePassword = async function(candidatePassword) {
   try {
     return await bcrypt.compare(candidatePassword, this.password);

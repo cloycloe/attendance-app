@@ -69,7 +69,7 @@ const AdminDashboard = ({ navigation, route }) => {
       <View style={styles.header}>
         <View style={styles.profileSection}>
           <Image 
-            source={require('../../assets/avatar.png')}
+            source={require('../../../assets/avatarboy.png')}
             style={styles.profileImage}
           />
           <View style={styles.userInfo}>

@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { API_URL } from '../../config/api';
 
 const handleLogout = (navigation) => {
   Alert.alert(
@@ -34,7 +36,14 @@ const handleLogout = (navigation) => {
   );
 };
 
-const StudentDashBoard = ({ navigation, route }) => {
+const SubjectCard = ({ subject }) => (
+  <TouchableOpacity style={styles.subjectCard}>
+    <Text style={styles.subjectName}>{subject.name}</Text>
+    <Text style={styles.subjectCode}>{subject.code}</Text>
+  </TouchableOpacity>
+);
+
+const StudentDashboard = ({ navigation, route }) => {
   const [subjects, setSubjects] = useState([]);
   const [studentName, setStudentName] = useState('');
 
@@ -47,7 +56,7 @@ const StudentDashBoard = ({ navigation, route }) => {
 
   const fetchStudentSubjects = async () => {
     try {
-      const response = await axios.get(`http://192.168.5.178:5000/api/subjects?studentId=${route.params?.user?._id}`);
+      const response = await axios.get(`${API_URL}/subjects?studentId=${route.params?.user?._id}`);
       setSubjects(response.data);
     } catch (error) {
       console.error('Error fetching subjects:', error);
@@ -76,6 +85,15 @@ const StudentDashBoard = ({ navigation, route }) => {
       <View style={styles.content}>
         <Text style={styles.loadingText}>Fetching data...</Text>
       </View>
+
+      <Text style={styles.sectionTitle}>Subjects</Text>
+      
+      <FlatList
+        data={subjects}
+        renderItem={({ item }) => <SubjectCard subject={item} />}
+        keyExtractor={item => item._id}
+        contentContainerStyle={styles.subjectList}
+      />
     </SafeAreaView>
   );
 };
@@ -177,4 +195,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default StudentDashBoard;
+export default StudentDashboard;

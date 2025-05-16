@@ -3,6 +3,7 @@ const router = express.Router();
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Course = require('../models/Course');
+const auth = require('../middleware/auth');
 
 // Get attendance report
 router.get('/report', async (req, res) => {
@@ -73,6 +74,95 @@ router.get('/class/:classId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching attendance:', error);
     res.status(500).json({ message: 'Error fetching attendance', error: error.message });
+  }
+});
+
+// Generate QR code data
+router.post('/generate-qr', async (req, res) => {
+  try {
+    const { studentId, courseId } = req.body;
+    
+    // Create QR code data
+    const qrData = {
+      studentId,
+      courseId,
+      timestamp: new Date().toISOString(),
+      nonce: Math.random().toString(36).substring(7)
+    };
+    
+    res.json({ qrCode: JSON.stringify(qrData) });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Verify and record attendance
+router.post('/verify', async (req, res) => {
+  try {
+    const { qrCode, scannedBy } = req.body;
+    const qrData = JSON.parse(qrCode);
+    
+    // Verify timestamp (30 seconds validity)
+    const scannedTime = new Date(qrData.timestamp);
+    const currentTime = new Date();
+    if ((currentTime - scannedTime) > 30000) {
+      return res.status(400).json({ message: 'QR Code has expired' });
+    }
+    
+    // Check if attendance already recorded
+    const existingAttendance = await Attendance.findOne({
+      student_id: qrData.studentId,
+      class_id: qrData.courseId,
+      date: {
+        $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        $lt: new Date(new Date().setHours(23, 59, 59, 999))
+      }
+    });
+    
+    if (existingAttendance) {
+      return res.status(400).json({ message: 'Attendance already recorded' });
+    }
+    
+    // Record attendance
+    const attendance = new Attendance({
+      student_id: qrData.studentId,
+      class_id: qrData.courseId,
+      date: new Date(),
+      status: 'present',
+      marked_by: scannedBy
+    });
+    
+    await attendance.save();
+    
+    res.status(201).json({ message: 'Attendance recorded successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get attendance history
+router.get('/history', async (req, res) => {
+  try {
+    const { courseId, studentId, startDate, endDate } = req.query;
+    
+    const query = {};
+    if (courseId) query.class_id = courseId;
+    if (studentId) query.student_id = studentId;
+    if (startDate && endDate) {
+      query.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+    
+    const attendance = await Attendance.find(query)
+      .populate('student_id', 'name user_id')
+      .populate('class_id', 'course_name')
+      .sort({ date: -1 });
+    
+    res.json(attendance);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

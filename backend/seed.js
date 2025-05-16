@@ -1,153 +1,155 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
-const User = require("./models/User");
-const Course = require("./models/Course");
-const Section = require("./models/Section");
-const Enrollment = require("./models/Enrollment");
-const Attendance = require("./models/Attendance");
-const dotenv = require("dotenv");
+const mongoose = require('mongoose');
+const Course = require('./models/Course');
+const Subject = require('./models/Subject');
+const Section = require('./models/Section');
+const Enrollment = require('./models/Enrollment');
+const User = require('./models/User');
+const TeacherAssignment = require('./models/TeacherAssignment');
 
-dotenv.config();
-
-const seedDatabase = async () => {
+async function seedDatabase() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/attendance-app");
-    console.log("Connected to MongoDB");
+    // Drop existing database to start fresh
+    console.log('Dropping existing database...');
+    await mongoose.connection.dropDatabase();
+    
+    // Create courses
+    console.log('Creating courses...');
+    const courses = [
+      {
+        course_id: "BSIT",
+        course_name: "Bachelor of Science in Information Technology"
+      },
+      {
+        course_id: "BSN",
+        course_name: "Bachelor of Science in Nursing"
+      }
+    ];
+    const createdCourses = await Course.create(courses);
+    console.log('✓ Courses created');
 
-    // Clear existing data
-    await User.deleteMany({});
-    await Course.deleteMany({});
-    await Section.deleteMany({});
-    await Enrollment.deleteMany({});
-    await Attendance.deleteMany({});
-
-    // Create courses first
-    const course1 = new Course({
-      course_code: 'BSIT',
-      course_name: 'Bachelor of Science in Information Technology',
-      subject: 'Secure Mobile Application'
-    });
-
-    const course2 = new Course({
-      course_code: 'BSN',
-      course_name: 'Bachelor of Science in Nursing',
-      subject: 'Nursing Fundamentals'
-    });
-
-    await course1.save();
-    await course2.save();
-    console.log('Courses seeded successfully');
+    // Create subjects
+    console.log('Creating subjects...');
+    const subjects = [
+      {
+        subject_id: "ITMSD2",
+        subject_name: "Advance Mobile Application Development",
+        course_id: "BSIT"
+      },
+      {
+        subject_id: "ITMSD5",
+        subject_name: "Secure Mobile Application Development",
+        course_id: "BSIT"
+      },
+      {
+        subject_id: "ITP135",
+        subject_name: "Capstone Project and Research 1",
+        course_id: "BSIT"
+      },
+      {
+        subject_id: "NCM115",
+        subject_name: "Nursing Research 2",
+        course_id: "BSN"
+      }
+    ];
+    const createdSubjects = await Subject.create(subjects);
+    console.log('✓ Subjects created');
 
     // Create sections
-    const sectionA = new Section({
-      name: 'BSIT-1A',
-      courseIds: [course1._id]
-    });
+    console.log('Creating sections...');
+    const sections = [
+      { section_id: "BSIT3A" },
+      { section_id: "BSIT3B" },
+      { section_id: "BSIT3C" },
+      { section_id: "BSN3B" },
+      { section_id: "BSIT4C" }
+    ];
+    const createdSections = await Section.create(sections);
+    console.log('✓ Sections created');
 
-    const sectionB = new Section({
-      name: 'BSN-1A',
-      courseIds: [course2._id]
-    });
-
-    await sectionA.save();
-    await sectionB.save();
-    console.log('Sections seeded successfully');
-
-    // Create users with proper ID scheme
+    // Create users with proper ID patterns
+    console.log('Creating users...');
     const users = [
-      // Admins (1xxx)
       {
-        user_id: 1001,
-        username: 'ADMIN-1001',
-        password: 'password1',
-        name: 'Cloe Mabanding',
-        role: 'Administrator'
-      },
-      // Add your new admin here
-      {
-        user_id: 1002,
-        username: 'ADMIN-1002',
-        password: 'youradmin2',
-        name: 'Cloy Cloe',
-        role: 'Administrator'
-      },
-
-      // Lecturers (2xxx)
-      {
-        user_id: 2001,
-        username: 'LECT-2001',
-        password: 'password2',
-        name: 'Sophie Bohol',
-        role: 'Instructor'
-      },
-      // Add new lecturer here if needed
-      {
-        user_id: 2002,
-        username: 'LECT-2002',
-        password: 'lecturer2',
-        name: 'John Doe',
-        role: 'Instructor'
-      },
-
-      // Students (3xxx)
-      {
-        user_id: 3001,
-        username: 'STUD-3001',
-        password: 'password3',
-        name: 'Ella Ventura',
-        role: 'Student',
-        section: sectionA._id
+        user_id: "3001",  // Student ID pattern
+        username: "2021-3644",
+        password: "student001",
+        role: "Student",
+        name: "Cloe Den S. Mabanding"
       },
       {
-        user_id: 3002,
-        username: 'STUD-3002',
-        password: 'password3',
-        name: 'Maureen Portillo',
-        role: 'Student',
-        section: sectionA._id
+        user_id: "2001",  // Instructor ID pattern
+        username: "INSTRUCTOR-2001",
+        password: "instructor1",
+        role: "Instructor",
+        name: "Instructor X"
+      },
+      {
+        user_id: "1001",  // Admin ID pattern
+        username: "ADMINISTRATOR-1001",
+        password: "administrator1",
+        role: "Administrator",
+        name: "Administrator X"
       }
-      // Add new students here if needed
+    ];
+    const createdUsers = await User.create(users);
+    console.log('✓ Users created');
+
+    // Create enrollments
+    console.log('Creating enrollments...');
+    const enrollments = [
+      {
+        user_id: "3001",
+        username: "2021-3644",
+        subjectId: "ITMSD2",
+        sectionId: "BSIT3C",
+        academicYear: "2024-2025",
+        semester: "1st"
+      }
+    ];
+    const createdEnrollments = await Enrollment.create(enrollments);
+    console.log('✓ Enrollments created');
+
+    // Create Teacher Assignment
+    console.log('Creating teacher assignments...');
+    const teacherAssignments = [
+      {
+        instructor_id: "2001",
+        course_id: "BSIT",
+        subject_id: "ITMSD2",
+        subject_name: "Advance Mobile Application Development",
+        section_id: "BSIT3C"
+      }
     ];
 
-    // Save all users
-    for (const userData of users) {
-      const user = new User(userData);
-      await user.save();
-    }
+    const createdAssignments = await TeacherAssignment.create(teacherAssignments);
+    console.log('✓ Teacher assignments created:', createdAssignments.length);
 
-    console.log('Users seeded successfully');
-
-    // Update courses with lecturer ID (use the first lecturer)
-    const lecturer = await User.findOne({ role: 'Instructor' });
-    if (lecturer) {
-      course1.lecturerId = lecturer._id;
-      course2.lecturerId = lecturer._id;
-      await course1.save();
-      await course2.save();
-    }
-
-    // Create enrollments for students
-    const students = await User.find({ role: 'Student' });
-    const enrollments = students.map(student => ({
-      studentId: student._id,
-      courseId: course1._id
-    }));
-
-    await Enrollment.insertMany(enrollments);
-    console.log('Enrollments seeded successfully');
-
-    console.log('\nDatabase seeded with:');
-    console.log('Users created:');
-    for (const user of users) {
-      console.log(`- ${user.role}: ${user.username} (ID: ${user.user_id})`);
-    }
+    console.log('\nDatabase seeding completed successfully! Summary:');
+    console.log(`- Courses created: ${createdCourses.length}`);
+    console.log(`- Subjects created: ${createdSubjects.length}`);
+    console.log(`- Sections created: ${createdSections.length}`);
+    console.log(`- Users created: ${createdUsers.length}`);
+    console.log(`- Teacher assignments created: ${createdAssignments.length}`);
+    console.log(`- Enrollments created: ${createdEnrollments.length}`);
 
   } catch (error) {
-    console.error('Error seeding database:', error);
-  } finally {
-    await mongoose.disconnect();
-    console.log('Disconnected from MongoDB');
+    console.error('\n❌ Error seeding database:', error);
+    throw error;
   }
-};
+}
 
-seedDatabase();
+// Connect and seed
+console.log('Connecting to MongoDB...');
+mongoose.connect('mongodb://localhost:27017/attendance-app')
+  .then(() => {
+    console.log('✓ Connected to MongoDB');
+    return seedDatabase();
+  })
+  .then(() => {
+    console.log('\n✓ All done! Closing connection...');
+    mongoose.connection.close();
+  })
+  .catch(error => {
+    console.error('\n❌ Error:', error);
+    mongoose.connection.close();
+  });
